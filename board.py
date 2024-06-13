@@ -69,13 +69,18 @@ class Game:
         self.mouse_image = pygame.transform.scale(self.mouse_image, (self.cell_size, self.cell_size))  # Escalar la imagen
         self.cat_image = pygame.image.load("cat.png").convert_alpha()  # Cargar la imagen del gato
         self.cat_image = pygame.transform.scale(self.cat_image, (self.cell_size, self.cell_size))  # Escalar la imagen
+        self.moves_count = 0  # Contador de movimientos realizados
+        self.font = pygame.font.Font(None, 36)  # Fuente para mostrar texto en pantalla
 
     # Método para iniciar el juego
     def play(self):
-        moves = 0  # Contador de movimientos
-
-        while moves < self.max_moves:  # Mientras no haya pasado el tiempo límite y haya movimientos restantes
+        while self.moves_count < self.max_moves:
             self.screen.fill((255, 255, 255))  # Llenar la pantalla de blanco
+
+            # Mostrar contador de movimientos restantes (en el encabezado)
+            header_text = self.font.render(f'Movimientos restantes: {self.max_moves - self.moves_count}', True, (0, 0, 0))
+            header_text_rect = header_text.get_rect(center=(self.screen.get_width() // 2, 50))
+            self.screen.blit(header_text, header_text_rect)
 
             # Dibujar el tablero
             for x in range(self.board_size):
@@ -130,10 +135,10 @@ class Game:
 
             # Comprobar si el gato ha atrapado al ratón
             if self.board.cat_pos == self.board.mouse_pos:
-                print("¡El gato atrapó al ratón! El gato gana.")
+                self.show_winner("¡El gato atrapó al ratón! El gato gana.")
                 return
 
-            moves += 1  # Incrementar el contador de movimientos
+            self.moves_count += 1  # Incrementar el contador de movimientos
 
             # Manejo de eventos
             for event in pygame.event.get():
@@ -142,7 +147,21 @@ class Game:
                     sys.exit()
 
         # Si el juego termina sin que el gato atrape al ratón
-        print("¡El ratón escapó! El ratón gana.")
+        self.show_winner("¡El ratón escapó! El ratón gana.")
+
+    def show_winner(self, message):
+        # Mostrar mensaje de ganador en el centro del tablero
+        self.screen.fill((255, 255, 255))  # Llenar la pantalla de blanco
+
+        # Mostrar mensaje de ganador
+        winner_text = self.font.render(message, True, (0, 0, 0))
+        winner_text_rect = winner_text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        self.screen.blit(winner_text, winner_text_rect)
+
+        pygame.display.flip()  # Actualizar la pantalla
+
+        # Esperar unos segundos antes de salir
+        time.sleep(3)
 
 if __name__ == "__main__":
     pygame.init()  # Inicializar Pygame
