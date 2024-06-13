@@ -42,7 +42,7 @@ class Game:
             self.screen.blit(self.cat_image, cat_rect)
 
             pygame.display.flip()  # Actualizar la pantalla
-            self.clock.tick(30)  # Controlar los FPS
+            self.clock.tick(10)  # Controlar los FPS
 
             # Actualizar posiciones del ratón y el gato (movimiento aleatorio)
             self.board.mouse_pos = self.random_move(self.board.mouse_pos)

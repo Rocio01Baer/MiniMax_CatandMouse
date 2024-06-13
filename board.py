@@ -1,7 +1,7 @@
 import pygame
-import random
-import time
 import sys
+import time
+import random
 from pygame.locals import *
 
 # Definición del tablero
@@ -55,62 +55,101 @@ def minimax(board, depth, is_maximizing_player, alpha, beta):
                 break
         return min_eval
 
-# Configuración de Pygame
-pygame.init()
-font = pygame.font.SysFont(None, 36)
-width, height = 400, 400
-screen = pygame.display.set_mode((width, height))
-clock = pygame.time.Clock()
+class Game:
+    def __init__(self, board_size, max_moves):
+        # Inicialización del juego
+        self.board = Board(board_size)  # Crear un tablero
+        self.board_size = board_size
+        self.max_moves = max_moves  # Máximo de movimientos permitidos
+        self.cell_size = 80  # Tamaño de cada celda del tablero
+        self.screen_size = (self.cell_size * board_size, self.cell_size * board_size)  # Tamaño de la ventana
+        self.screen = pygame.display.set_mode(self.screen_size)  # Crear la ventana del juego
+        self.clock = pygame.time.Clock()  # Crear un reloj para controlar el tiempo
+        self.mouse_image = pygame.image.load("mouse.png").convert_alpha()  # Cargar la imagen del ratón
+        self.mouse_image = pygame.transform.scale(self.mouse_image, (self.cell_size, self.cell_size))  # Escalar la imagen
+        self.cat_image = pygame.image.load("cat.png").convert_alpha()  # Cargar la imagen del gato
+        self.cat_image = pygame.transform.scale(self.cat_image, (self.cell_size, self.cell_size))  # Escalar la imagen
 
-# Colores
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
-GREEN = (0, 255, 0)
+    # Método para iniciar el juego
+    def play(self):
+        moves = 0  # Contador de movimientos
 
-# Función principal del juego
-def main():
-    board = Board(5)  # Tamaño del tablero
-    game_over = False
-    start_time = time.time()
-    time_limit = 30  # Tiempo límite en segundos
+        while moves < self.max_moves:  # Mientras no haya pasado el tiempo límite y haya movimientos restantes
+            self.screen.fill((255, 255, 255))  # Llenar la pantalla de blanco
 
-    while not game_over:
-        screen.fill(WHITE)
+            # Dibujar el tablero
+            for x in range(self.board_size):
+                for y in range(self.board_size):
+                    rect = pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size)
+                    pygame.draw.rect(self.screen, (0, 0, 0), rect, 1)
 
-        # Dibujar el tablero
-        cell_size = min(width // board.size, height // board.size)
-        for x in range(board.size):
-            for y in range(board.size):
-                rect = pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size)
-                pygame.draw.rect(screen, BLACK, rect, 1)
-                if (x, y) == board.cat_pos:
-                    pygame.draw.circle(screen, RED, rect.center, cell_size // 4)
-                elif (x, y) == board.mouse_pos:
-                    pygame.draw.circle(screen, BLUE, rect.center, cell_size // 4)
+            # Dibujar el ratón
+            mouse_rect = self.mouse_image.get_rect(topleft=(self.board.mouse_pos[0] * self.cell_size, self.board.mouse_pos[1] * self.cell_size))
+            self.screen.blit(self.mouse_image, mouse_rect)
 
-        # Verificar si el gato atrapó al ratón
-        if board.cat_pos == board.mouse_pos:
-            game_over = True
-            elapsed_time = time.time() - start_time
-            if elapsed_time <= time_limit:
-                text = font.render("¡El gato atrapó al ratón!", True, GREEN)
-            else:
-                text = font.render("¡Se acabó el tiempo!", True, RED)
-            text_rect = text.get_rect(center=(width // 2, height // 2))
-            screen.blit(text, text_rect)
+            # Dibujar el gato
+            cat_rect = self.cat_image.get_rect(topleft=(self.board.cat_pos[0] * self.cell_size, self.board.cat_pos[1] * self.cell_size))
+            self.screen.blit(self.cat_image, cat_rect)
 
-        pygame.display.flip()
-        clock.tick(30)
+            pygame.display.flip()  # Actualizar la pantalla
 
-        # Manejo de eventos
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                game_over = True
+            # Agregar un retraso entre movimientos
+            time.sleep(0.5)  # Retraso de 0.5 segundos
 
-    pygame.quit()
-    sys.exit()
+            # Movimiento del ratón usando una combinación de Minimax y movimiento aleatorio
+            if random.random() < 0.8:  # 80% de probabilidad de usar Minimax
+                best_move = None
+                best_value = float('-inf')
+                for move in get_neighbors(self.board.mouse_pos, self.board.size):
+                    original_pos = self.board.mouse_pos
+                    self.board.mouse_pos = move
+                    move_value = minimax(self.board, 3, False, float('-inf'), float('inf'))
+                    self.board.mouse_pos = original_pos
+                    if move_value > best_value:
+                        best_value = move_value
+                        best_move = move
+                self.board.mouse_pos = best_move
+            else:  # 20% de probabilidad de moverse aleatoriamente
+                self.board.mouse_pos = random.choice(get_neighbors(self.board.mouse_pos, self.board.size))
+
+            # Movimiento del gato usando una combinación de Minimax y movimiento aleatorio
+            if random.random() < 0.8:  # 80% de probabilidad de usar Minimax
+                best_move = None
+                best_value = float('inf')
+                for move in get_neighbors(self.board.cat_pos, self.board.size):
+                    original_pos = self.board.cat_pos
+                    self.board.cat_pos = move
+                    move_value = minimax(self.board, 3, True, float('-inf'), float('inf'))
+                    self.board.cat_pos = original_pos
+                    if move_value < best_value:
+                        best_value = move_value
+                        best_move = move
+                self.board.cat_pos = best_move
+            else:  # 20% de probabilidad de moverse aleatoriamente
+                self.board.cat_pos = random.choice(get_neighbors(self.board.cat_pos, self.board.size))
+
+            # Comprobar si el gato ha atrapado al ratón
+            if self.board.cat_pos == self.board.mouse_pos:
+                print("¡El gato atrapó al ratón! El gato gana.")
+                return
+
+            moves += 1  # Incrementar el contador de movimientos
+
+            # Manejo de eventos
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+        # Si el juego termina sin que el gato atrape al ratón
+        print("¡El ratón escapó! El ratón gana.")
 
 if __name__ == "__main__":
-    main()
+    pygame.init()  # Inicializar Pygame
+
+    # Solicitar al usuario el tamaño del tablero y el número máximo de movimientos
+    board_size = int(input("Ingrese el tamaño del tablero: "))
+    max_moves = int(input("Ingrese el número máximo de movimientos: "))
+
+    game = Game(board_size, max_moves)  # Crear una instancia del juego con el número máximo de movimientos
+    game.play()  # Iniciar el juego
